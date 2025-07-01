@@ -26,7 +26,7 @@ FALLBACK_DNS="9.9.9.9"
 # Install dependencies
 install_dependencies() {
     echo -e "${CYAN}[INFO] Checking and installing required dependencies...${RESET}"
-    REQUIRED_CMDS=("ping" "sed" "bash" "systemctl" "file" "grep" "cp" "rm" "touch")
+    REQUIRED_CMDS=("ping" "sed" "systemctl" "file" "grep" "cp" "rm" "touch")
     OPTIONAL_CMDS=("dos2unix")
 
     apt update -y &>/dev/null
@@ -51,21 +51,13 @@ install_dependencies() {
 # Fix Windows-style line endings
 fix_line_endings() {
     local script_file="$0"
-    local temp_file="/tmp/fix-dns-menu-temp.sh"
-
     if file "$script_file" | grep -q "CRLF"; then
-        cp "$script_file" "$temp_file" || {
-            echo -e "${RED}[ERROR] Failed to create temp file.${RESET}" >&2
+        sed -i 's/\r$//' "$script_file" || {
+            echo -e "${RED}[ERROR] Failed to fix line endings. Run 'dos2unix $script_file' manually.${RESET}" >&2
             exit 1
         }
-        sed 's/\r$//' "$temp_file" > "$script_file" 2>/dev/null || {
-            echo -e "${RED}[ERROR] Failed to fix line endings. Run 'sed -i "s/\r\$//" $script_file' or 'dos2unix $script_file' manually.${RESET}" >&2
-            rm -f "$temp_file"
-            exit 1
-        }
-        rm -f "$temp_file"
         echo -e "${GREEN}[INFO] Fixed Windows-style line endings.${RESET}"
-        exec bash "$script_file" "$@"
+        exec bash "$script_file"
     fi
 }
 
@@ -84,6 +76,7 @@ log_message() {
 check_root() {
     if [[ $EUID -ne 0 ]]; then
         log_message "ERROR" "This script must be run as root"
+        echo -e "${RED}This script must be run as root. Please use sudo.${RESET}"
         exit 1
     fi
 }
@@ -100,6 +93,7 @@ check_prerequisites() {
 
     if ! command -v systemctl &>/dev/null || ! systemctl --version &>/dev/null; then
         log_message "ERROR" "systemctl not found. Please ensure systemd is installed."
+        echo -e "${RED}systemctl not found. Please ensure systemd is installed.${RESET}"
         exit 1
     fi
 
@@ -111,9 +105,9 @@ check_prerequisites() {
 
 prompt_custom_dns() {
     echo -e "${CYAN}Enter custom DNS servers (leave blank to use defaults: $PRIMARY_DNS, $SECONDARY_DNS, $FALLBACK_DNS):${RESET}"
-    read -p "Primary DNS [default: $PRIMARY_DNS]: " input_primary
-    read -p "Secondary DNS [default: $SECONDARY_DNS]: " input_secondary
-    read -p "Fallback DNS [default: $FALLBACK_DNS]: " input_fallback
+    read -rp "Primary DNS [default: $PRIMARY_DNS]: " input_primary
+    read -rp "Secondary DNS [default: $SECONDARY_DNS]: " input_secondary
+    read -rp "Fallback DNS [default: $FALLBACK_DNS]: " input_fallback
 
     PRIMARY_DNS=${input_primary:-$PRIMARY_DNS}
     SECONDARY_DNS=${input_secondary:-$SECONDARY_DNS}
@@ -126,13 +120,16 @@ setup_dns() {
     log_message "INFO" "Starting DNS configuration"
     prompt_custom_dns
 
-    apt update &>/dev/null
+    apt update -y &>/dev/null
     apt install -y systemd-resolved &>/dev/null
 
     systemctl enable systemd-resolved &>/dev/null
     systemctl restart systemd-resolved &>/dev/null
 
-    cp -f /etc/resolv.conf /etc/resolv.conf.backup
+    # Backup resolv.conf only if backup does not exist
+    if [[ ! -f /etc/resolv.conf.backup ]]; then
+        cp -f /etc/resolv.conf /etc/resolv.conf.backup
+    fi
 
     ln -sf /run/systemd/resolve/resolv.conf /etc/resolv.conf
 
@@ -148,6 +145,7 @@ setup_dns() {
     systemctl restart systemd-resolved &>/dev/null
 
     log_message "INFO" "DNS configuration completed successfully"
+    echo -e "${GREEN}✅ DNS configuration completed successfully${RESET}"
 }
 
 restore_dns() {
@@ -160,7 +158,7 @@ restore_dns() {
         echo -e "${GREEN}✅ DNS configuration restored successfully${RESET}"
     else
         log_message "ERROR" "No backup file found"
-        echo -e "${RED}Error: No backup file found${RESET}"
+        echo -e "${RED}Error: No backup file found. Please run setup first to create a backup.${RESET}"
     fi
 }
 
@@ -209,10 +207,10 @@ menu() {
 }
 
 main() {
-    install_dependencies
-    fix_line_endings
     check_root
     init_logging
+    install_dependencies
+    fix_line_endings
     check_prerequisites
     log_message "INFO" "DNS Tool started"
 
@@ -223,7 +221,7 @@ main() {
         if [[ ! $choice =~ ^[1-5]$ ]]; then
             log_message "ERROR" "Invalid input: $choice"
             echo -e "${RED}Invalid option! Enter number 1-5.${RESET}"
-            read -p "Press Enter to continue..."
+            read -rp "Press Enter to continue..."
             continue
         fi
 
