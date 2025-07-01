@@ -33,12 +33,6 @@ A professional Bash script for configuring, testing, and restoring DNS settings 
    sudo ./dns-tool.sh
    ```
 
-## Usage
-Run the script with root privileges:
-```bash
-sudo ./dns-tool.sh
-```
-
 ### Menu Options
 1. **Setup and optimize system DNS**: Configure DNS servers (default: 1.1.1.1, 8.8.8.8, 9.9.9.9) or use custom servers.
 2. **Test DNS and network status**: Check connectivity to DNS servers and display `/etc/resolv.conf`.
