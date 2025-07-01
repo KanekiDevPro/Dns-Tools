@@ -82,4 +82,4 @@ Contributions are welcome! Please fork the repository, make changes, and submit 
 This project is licensed under the MIT License. See the [LICENSE](LICENSE) file for details.
 
 ## Contact
-For updates and support, join our Telegram channel: [@YourChannelName](https://t.me/YourChannelName)
+For updates and support, join our Telegram channel: [@KanekiDevPro](https://t.me/KanekiDevPro)
