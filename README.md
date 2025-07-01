@@ -21,7 +21,7 @@ A professional Bash script for configuring, testing, and restoring DNS settings 
 ## Installation
 1. Clone the repository:
    ```bash
-   git clone https://github.com/your-username/dns-tool.git
+   git clone https://github.com/KanekiDevPro/dns-tool.sh
    cd dns-tool
    ```
 2. Make the script executable:
